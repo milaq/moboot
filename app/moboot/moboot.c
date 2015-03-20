@@ -218,7 +218,7 @@ void set_menu_entry(char *title, unsigned type, char *arg, char *name)
 
 void moboot_init(const struct app_descriptor *app)
 {
-	int rv, keys_pressed;
+	int rv, keys_pressed, default_set;
 	unsigned act;
 	menu_entry_t *real_entries[32];
 
@@ -258,6 +258,7 @@ void moboot_init(const struct app_descriptor *app)
 	char *rdmsg;
 
 	keys_pressed = 0;
+	default_set = 0;
 
 	display_surface = NULL;
 
@@ -299,6 +300,7 @@ void moboot_init(const struct app_descriptor *app)
 	default_image[0] = 0;
 	rv = fs_load_file("/boot/moboot.default", &default_image, 256);
 	if (rv > 0) {
+		default_set = 1;
 		default_image[rv] = 0;
 		if (default_image[rv - 1] == '\n') default_image[rv - 1] = 0;
 	}
@@ -449,7 +451,7 @@ void moboot_init(const struct app_descriptor *app)
 #endif
 
 	while (1) {
-		if (keys_pressed) {
+		if ((!default_set && !use_next) || keys_pressed) {
 			gfxconsole_clear();
 
 			show_background();
