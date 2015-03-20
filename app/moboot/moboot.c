@@ -449,39 +449,40 @@ void moboot_init(const struct app_descriptor *app)
 #endif
 
 	while (1) {
-		gfxconsole_clear();
+		if (keys_pressed) {
+			gfxconsole_clear();
 
-		show_background();
+			show_background();
 
-		if (background_surface) {
-			gfxconsole_setbackground(background_surface);
-		}
+			if (background_surface) {
+				gfxconsole_setbackground(background_surface);
+			}
 
-		gfxconsole_settrans(gfx_trans);
+			gfxconsole_settrans(gfx_trans);
 
-		gfxconsole_setpos(xoff,yoff);
-		if (gfx_trans) {
-			gfxconsole_set_colors(0xffffffff, 0x00000000);
-			printf("moboot %s", MOBOOT_VERSION);
 			gfxconsole_setpos(xoff,yoff);
-			gfxconsole_set_colors(0x00000000, 0x00000000);
-		} else {
-			gfxconsole_set_colors(0x00000000, 0xffffffff);
-			printf("moboot %s", MOBOOT_VERSION);
-			gfxconsole_set_colors(0x00000000, 0x000000ff);
-		}
+			if (gfx_trans) {
+				gfxconsole_set_colors(0xffffffff, 0x00000000);
+				printf("moboot %s", MOBOOT_VERSION);
+				gfxconsole_setpos(xoff,yoff);
+				gfxconsole_set_colors(0x00000000, 0x00000000);
+			} else {
+				gfxconsole_set_colors(0x00000000, 0xffffffff);
+				printf("moboot %s", MOBOOT_VERSION);
+				gfxconsole_set_colors(0x00000000, 0x000000ff);
+			}
 
-		if (!use_next || keys_pressed) {
-			act = moboot_menu(xoff, yoff + 2, entries, default_menu_entry, num_menu_entries, keys_pressed ? 0 : default_timeout);
-		} else {
+			act = moboot_menu(xoff, yoff + 2, entries, default_menu_entry, num_menu_entries, 0);
+
+			keys_pressed = 1;
+
+			gfxconsole_setpos(xoff, yoff + 2 + num_menu_entries + 2);
+
+		} else if (use_next) {
 			act = next_menu_entry;
-			use_next = 0;
+		} else {
+			act = default_menu_entry;
 		}
-
-		keys_pressed = 1;
-
-		gfxconsole_setpos(xoff, yoff + 2 + num_menu_entries + 2);
-
 		boot_flags = BOOTLINUX_NOFLAGS;
 
 		switch (entries[act]->type) {
@@ -509,14 +510,21 @@ void moboot_init(const struct app_descriptor *app)
 					gfxconsole_set_colors(0x00000000, 0x000000ff);
 				}
 
-				printf("Selected: '%s'\n\n", entries[act]->title);
-				printf("Loading '%s'... ", entries[act]->arg);
+				if (keys_pressed) {
+					printf("Selected: '%s'\n\n", entries[act]->title);
+					printf("Loading '%s'... ", entries[act]->arg);
+				}
 				if ((rv = fs_load_file(entries[act]->arg,
 							(void *)SCRATCH_ADDR, 
 							SCRATCH_SIZE * 1024 * 1024)) < 0) {
-					printf("FAILED\n");
+					if (keys_pressed) {
+						printf("FAILED\n");
+					} else {
+						printf("FAILED to load '%s'\n", entries[act]->arg);
+					}
 				} else {
-					printf("OK\n");
+					if (keys_pressed)
+						printf("OK\n");
 
 					/* check for verbose boot */
 					sprintf(splash_path, "/boot/moboot.verbose.%s", 
@@ -562,6 +570,8 @@ void moboot_init(const struct app_descriptor *app)
 													&disp_info);
 						}
 					}
+					if (!keys_pressed)
+						gfxconsole_set_colors(0xff000000, 0xff000000);
 
 					/* do it to it! */
 					bootlinux_uimage_mem((void *)SCRATCH_ADDR, rv, boot_splash,
