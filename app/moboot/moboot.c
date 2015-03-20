@@ -106,7 +106,7 @@ void show_background()
 	}
 }
 
-int moboot_menu(unsigned x, unsigned y, menu_entry_t **entries, unsigned init, unsigned total, unsigned timeout)
+int moboot_menu(unsigned x, unsigned y, menu_entry_t **entries, unsigned init, unsigned total, unsigned timeout, int acceptkeys)
 {
 	unsigned curpos, i, max, keys, is_pressed, has_timeout, countdown;
 	time_t tick;
@@ -143,6 +143,15 @@ int moboot_menu(unsigned x, unsigned y, menu_entry_t **entries, unsigned init, u
 				} else {
 					gfxconsole_set_colors(0x00000000, 0x000000ff);
 					printf("%s", entries[i]->title);
+				}
+			}
+		}
+		if (!acceptkeys) {
+			while (1) {
+				thread_sleep(20);
+				if (!gpiokeys_poll(KEY_ALL)) {
+					acceptkeys = 1;
+					break;
 				}
 			}
 		}
@@ -218,7 +227,7 @@ void set_menu_entry(char *title, unsigned type, char *arg, char *name)
 
 void moboot_init(const struct app_descriptor *app)
 {
-	int rv, keys_pressed, default_set;
+	int rv, keys_pressed, default_set, acceptkeys;
 	unsigned act;
 	menu_entry_t *real_entries[32];
 
@@ -258,6 +267,7 @@ void moboot_init(const struct app_descriptor *app)
 	char *rdmsg;
 
 	keys_pressed = 0;
+	acceptkeys = 0;
 	default_set = 0;
 
 	display_surface = NULL;
@@ -408,13 +418,6 @@ void moboot_init(const struct app_descriptor *app)
 
 	if (gpiokeys_poll(KEY_ALL)) {
 		keys_pressed = 1;
-		printf("\nPlease release key(s)...");
-		while (1) {
-			thread_sleep(20);
-			if (!gpiokeys_poll(KEY_ALL)) {
-				break;
-			}
-		}
 	}
 
 	gfx_trans = 0;
@@ -474,8 +477,12 @@ void moboot_init(const struct app_descriptor *app)
 				gfxconsole_set_colors(0x00000000, 0x000000ff);
 			}
 
-			act = moboot_menu(xoff, yoff + 2, entries, default_menu_entry, num_menu_entries, 0);
+			if (!acceptkeys)
+				acceptkeys = !keys_pressed;
 
+			act = moboot_menu(xoff, yoff + 2, entries, default_menu_entry, num_menu_entries, 0, acceptkeys);
+
+			acceptkeys = 1;
 			keys_pressed = 1;
 
 			gfxconsole_setpos(xoff, yoff + 2 + num_menu_entries + 2);
