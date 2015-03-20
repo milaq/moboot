@@ -360,7 +360,7 @@ void moboot_init(const struct app_descriptor *app)
 		if (strncmp("uImage.", ptr, 7) == 0) {
 			if (strncmp("uImage.moboot", ptr, 13) != 0) {
 				newtitle = malloc(strlen(ptr) - 7 + 5 + 1);
-				sprintf(newtitle, "boot %s", ptr + 7);
+				sprintf(newtitle, "%s", ptr + 7);
 				newpath = malloc(strlen(ptr) + 6 + 1);
 				sprintf(newpath, "/boot/%s", ptr);
 				newname = malloc(strlen(ptr) - 7 + 1);
@@ -426,7 +426,7 @@ void moboot_init(const struct app_descriptor *app)
 	}
 
 
-	set_menu_entry("boot webOS Recovery", BOOT_RECOVER, "", "recover");
+	set_menu_entry("webOS Recovery", BOOT_RECOVER, "", "recover");
 	set_menu_entry("reboot", BOOT_REBOOT, "", "reboot");
 	// set_menu_entry("DFU", BOOT_DFU, "", "");
 	set_menu_entry("shutdown", BOOT_SHUTDOWN, "", "shutdown");
